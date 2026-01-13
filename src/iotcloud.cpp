@@ -1,11 +1,12 @@
 #include "iotcloud.h"
 
-String WS_HOST = "api.iotcloud.petalred.com"; //"192.168.1.30";
+String WS_HOST = "api.iotcloud.petalred.com";
 uint16_t WS_PORT = 80;
 String WS_PATH = "/ws-mobile";
 
 IoTCloud Cloud;
 static IoTCloud *instancePtr;
+String key =  "/api/iot/mcu?token=";
 
 void IoTCloud::begin(String ssid, String password, String token) {
   instancePtr = this;
@@ -38,15 +39,9 @@ void IoTCloud::connectWiFi() {
 
 
 void IoTCloud::connectWS() {
-   // Serial.println("[WS] Connecting...");
-
-    // WS without SSL (server = ws://)
     ws.begin(WS_HOST.c_str(), WS_PORT, WS_PATH.c_str());
-    //ws.begin("api.iotcloud.petalred.com", 80, "/ws-mobile");
-
-    // Heartbeat (important for cloud)
+        // Heartbeat (important for cloud)
     ws.enableHeartbeat(15000, 3000, 2);
-
     // STOMP event handler
     ws.onEvent(IoTCloud::wsEvent);
 }
@@ -63,7 +58,6 @@ void IoTCloud::loop() {
     if (!ws.isConnected() && WiFi.status() == WL_CONNECTED) {
         static unsigned long lastTry = 0;
         if (millis() - lastTry > 3000) {
-            //Serial.println("[WS] Reconnect...");
             ws.disconnect();
             connectWS();
             lastTry = millis();
@@ -119,7 +113,7 @@ bool IoTCloud::write(String pin, int value) {
   if (_lastWriteValue[idx] == value) return true;
 
   if (WiFi.status() != WL_CONNECTED) return false;
-  String url = String(PETAL_SERVER_IP) + "/api/iot/mcu?token=" + deviceToken + "&" + pin + "=" + String(value);
+  String url = String(PETAL_SERVER_IP) + key + deviceToken + "&" + pin + "=" + String(value);
 
   HTTPClient https;
   https.begin(url);
@@ -142,7 +136,7 @@ bool IoTCloud::write(String pin, String value) {
 
   if (WiFi.status() != WL_CONNECTED) return false;
 
-  String url = String(PETAL_SERVER_IP) + "/api/iot/mcu?token=" + deviceToken + "&" + pin + "=" + String(value);
+  String url = String(PETAL_SERVER_IP) + key + deviceToken + "&" + pin + "=" + String(value);
  
   HTTPClient https;
   https.begin(url);
@@ -186,9 +180,7 @@ void IoTCloud::sendSTOMP(String f) {
 
 void IoTCloud::wsEvent(WStype_t type, uint8_t *payload, size_t length) {
     String msg = (char*)payload;
-   // Serial.println("[WS] " + msg);
-
-    switch(type) {
+     switch(type) {
         case WStype_CONNECTED: {
             Serial.println("Petal Cloud CONNECT");
             instancePtr->sendSTOMP(
@@ -202,8 +194,7 @@ void IoTCloud::wsEvent(WStype_t type, uint8_t *payload, size_t length) {
         case WStype_TEXT: {
             // CONNECTED frame
             if (msg.startsWith("CONNECTED")) {
-               // Serial.println("[STOMP] SUBSCRIBE");
-                instancePtr->sendSTOMP(
+               instancePtr->sendSTOMP(
                     "SUBSCRIBE\n"
                     "id:0\n"
                     "destination:/topic/device/" + instancePtr->deviceToken
@@ -233,4 +224,5 @@ void IoTCloud::wsEvent(WStype_t type, uint8_t *payload, size_t length) {
             Serial.println("[WS] DISCONNECTED");
             break;
     }
+
 }
