@@ -4,7 +4,6 @@
 #include "Petal_Config.h"
 #include <Arduino.h>
 #include <WiFi.h>
-//#include "PetaliotCloudws.h"
 #include "WebSocketsClient.h"
 #include <ArduinoJson.h>
 #include <map>
@@ -25,6 +24,11 @@ class IoTCloud {
     std::map<String, PinCallback> callbacks;
     std::map<String, String> lastValues;
 
+    template<typename T>
+    bool write(String pin, T value) {
+        return writeInternal(pin, String(value));
+    }
+
     String ssid, password, deviceToken;
 
     void begin(String ssid, String password, String token);
@@ -35,15 +39,12 @@ class IoTCloud {
     int readInt(String pin);
     bool readBool(String pin);
     RGB readRGB(String pin);
-
-    // WRITE
-    bool write(String pin, int value);
-    bool write(String pin, String value);
-
+   
     // CALLBACK
     void registerPin(String pin, PinCallback cb);
 
   private:
+   bool writeInternal(String pin, String value);
     void dispatchPin(String pin, String value);
     void sendSTOMP(String f);
     void connectWiFi();
@@ -58,6 +59,7 @@ class IoTCloud {
     int _lastWriteValue[500];
     String _lastWriteString[500];
     RGB _lastRGB[500];
+    String urlEncode(const String &value);
 };
 
 extern IoTCloud Cloud;
