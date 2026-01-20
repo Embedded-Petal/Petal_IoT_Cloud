@@ -6,7 +6,7 @@ String WS_PATH = "/ws-mobile";
 
 IoTCloud Cloud;
 static IoTCloud *instancePtr;
-String key =  "/api/iot/mcu?token=";
+String key = "/api/iot/mcu?token=";
 
 void IoTCloud::begin(String ssid, String password, String token) {
   instancePtr = this;
@@ -16,7 +16,8 @@ void IoTCloud::begin(String ssid, String password, String token) {
 
   for (int i = 0; i < 500; i++) {
     _lastWriteValue[i] = -1;
-    _lastRGB[i] = {0, 0, 0};
+    _lastRGB[i] = { 0, 0, 0 };
+    _lastWriteString[i] = "";
   }
 
   connectWiFi();
@@ -30,8 +31,7 @@ void IoTCloud::connectWiFi() {
   while (WiFi.status() != WL_CONNECTED && millis() - t < 10000) {
     delay(200);
   }
-  if(WiFi.status() == WL_CONNECTED)
-  {
+  if (WiFi.status() == WL_CONNECTED) {
     Serial.println("WiFi Connected..");
   }
 }
@@ -39,11 +39,11 @@ void IoTCloud::connectWiFi() {
 
 
 void IoTCloud::connectWS() {
-    ws.begin(WS_HOST.c_str(), WS_PORT, WS_PATH.c_str());
-        // Heartbeat (important for cloud)
-    ws.enableHeartbeat(15000, 3000, 2);
-    // STOMP event handler
-    ws.onEvent(IoTCloud::wsEvent);
+  ws.begin(WS_HOST.c_str(), WS_PORT, WS_PATH.c_str());
+  // Heartbeat (important for cloud)
+  ws.enableHeartbeat(15000, 3000, 2);
+  // STOMP event handler
+  ws.onEvent(IoTCloud::wsEvent);
 }
 
 
@@ -51,20 +51,20 @@ void IoTCloud::registerPin(String pin, PinCallback cb) {
   callbacks[pin] = cb;
 }
 void IoTCloud::loop() {
-    if (WiFi.status() != WL_CONNECTED)
-        connectWiFi();
+  if (WiFi.status() != WL_CONNECTED)
+    connectWiFi();
 
-    // Auto reconnect WS
-    if (!ws.isConnected() && WiFi.status() == WL_CONNECTED) {
-        static unsigned long lastTry = 0;
-        if (millis() - lastTry > 3000) {
-            ws.disconnect();
-            connectWS();
-            lastTry = millis();
-        }
+  // Auto reconnect WS
+  if (!ws.isConnected() && WiFi.status() == WL_CONNECTED) {
+    static unsigned long lastTry = 0;
+    if (millis() - lastTry > 3000) {
+      ws.disconnect();
+      connectWS();
+      lastTry = millis();
     }
+  }
 
-    ws.loop();
+  ws.loop();
 }
 
 /**************** DISPATCH ****************/
@@ -102,42 +102,41 @@ bool IoTCloud::readBool(String pin) {
 
 IoTCloud::RGB IoTCloud::readRGB(String pin) {
   int idx = pinIndex(pin);
-  if (idx < 0 || idx >= 500) return {0, 0, 0};
+  if (idx < 0 || idx >= 500) return { 0, 0, 0 };
   return _lastRGB[idx];
 }
 
-/**************** WRITE ****************/
+/**************** WRITE (Unified) *************/
 
-bool IoTCloud::write(String pin, int value) {
-  int idx = pinIndex(pin);
-  if (_lastWriteValue[idx] == value) return true;
-
-  if (WiFi.status() != WL_CONNECTED) return false;
-  String url = String(PETAL_SERVER_IP) + key + deviceToken + "&" + pin + "=" + String(value);
-
-  HTTPClient https;
-  https.begin(url);
-  https.setTimeout(8000);
-  int code = https.GET();
-  https.end();
-
-  if (code > 0) {
-    _lastWriteValue[idx] = value;
-    return true;
+String IoTCloud::urlEncode(const String &value) {
+  String encoded = "";
+  char c;
+  char bufHex[4];
+  for (int i = 0; i < value.length(); i++) {
+    c = value.charAt(i);
+    if (isalnum(c)) {
+      encoded += c;
+    } else if (c == ' ') {
+      encoded += "%20";
+    } else {
+      sprintf(bufHex, "%%%02X", c);
+      encoded += bufHex;
+    }
   }
-  return false;
+  return encoded;
 }
 
-bool IoTCloud::write(String pin, String value) {
-  int idx = pinIndex(pin);
 
+bool IoTCloud::writeInternal(String pin, String value) {
+ 
+  int idx = pinIndex(pin);
+  String encodedValue = urlEncode(value);
   // avoid re-send if same string exists
-  if (_lastWriteString[idx] == value) return true;
+  if (_lastWriteString[idx] == encodedValue) return true;
 
   if (WiFi.status() != WL_CONNECTED) return false;
-
-  String url = String(PETAL_SERVER_IP) + key + deviceToken + "&" + pin + "=" + String(value);
- 
+  
+  String url = String(PETAL_SERVER_IP) + key + deviceToken + "&" + pin + "=" + encodedValue;
   HTTPClient https;
   https.begin(url);
   https.setTimeout(8000);
@@ -145,7 +144,7 @@ bool IoTCloud::write(String pin, String value) {
   https.end();
 
   if (code > 0) {
-    _lastWriteString[idx] = value; // cache string
+    _lastWriteString[idx] = encodedValue;  // cache string
     return true;
   }
   return false;
@@ -161,7 +160,8 @@ int IoTCloud::pinIndex(String pin) {
 bool IoTCloud::isHexColor(String v) {
   if (v.startsWith("#")) v = v.substring(1);
   if (v.length() != 6) return false;
-  for (int i = 0; i < 6; i++) if (!isxdigit(v[i])) return false;
+  for (int i = 0; i < 6; i++)
+    if (!isxdigit(v[i])) return false;
   return true;
 }
 
@@ -179,50 +179,48 @@ void IoTCloud::sendSTOMP(String f) {
 
 
 void IoTCloud::wsEvent(WStype_t type, uint8_t *payload, size_t length) {
-    String msg = (char*)payload;
-     switch(type) {
-        case WStype_CONNECTED: {
-            Serial.println("Petal Cloud CONNECT");
-            instancePtr->sendSTOMP(
-                "CONNECT\n"
-                "accept-version:1.2\n"
-                "host:api.iotcloud.petalred.com"
-            );
-            break;
+  String msg = (char *)payload;
+  switch (type) {
+    case WStype_CONNECTED:
+      {
+        Serial.println("Petal Cloud CONNECT");
+        instancePtr->sendSTOMP(
+          "CONNECT\n"
+          "accept-version:1.2\n"
+          "host:api.iotcloud.petalred.com\n"
+          "heart-beat:10000,10000");
+        break;
+      }
+
+    case WStype_TEXT:
+      {
+        // CONNECTED frame
+        if (msg.startsWith("CONNECTED")) {
+          instancePtr->sendSTOMP(
+            "SUBSCRIBE\n"
+            "id:sub-0\n"
+            "ack:auto\n"
+            "destination:/topic/device/"
+            + instancePtr->deviceToken);
+          break;
         }
 
-        case WStype_TEXT: {
-            // CONNECTED frame
-            if (msg.startsWith("CONNECTED")) {
-               instancePtr->sendSTOMP(
-                    "SUBSCRIBE\n"
-                    "id:0\n"
-                    "destination:/topic/device/" + instancePtr->deviceToken
-                );
-                break;
+        // MESSAGE frame
+        if (msg.startsWith("MESSAGE")) {
+          int idx = msg.indexOf("\n\n");
+          if (idx > 0) {
+            String body = msg.substring(idx + 2);
+            size_t capacity = body.length() * 1.2 + 256;
+            DynamicJsonDocument doc(capacity);
+            if (deserializeJson(doc, body) == DeserializationError::Ok) {
+              String pin = doc["pin"].as<String>();
+              String val = doc["value"].as<String>();
+              val.trim();
+              instancePtr->dispatchPin(pin, val);
             }
-
-            // MESSAGE frame
-            if (msg.startsWith("MESSAGE")) {
-                int idx = msg.indexOf("\n\n");
-                if (idx > 0) {
-                    String body = msg.substring(idx + 2);
-                    size_t capacity = body.length() * 1.2 + 256;
-                    DynamicJsonDocument doc(capacity);
-                    if (deserializeJson(doc, body) == DeserializationError::Ok) {
-                        String pin = doc["pin"].as<String>();
-                        String val = doc["value"].as<String>();
-                        val.trim();
-                        instancePtr->dispatchPin(pin, val);
-                    }
-                }
-            }
-            break;
+          }
         }
-
-        case WStype_DISCONNECTED:
-            Serial.println("[WS] DISCONNECTED");
-            break;
-    }
-
+        break;
+      }       
+  }
 }
