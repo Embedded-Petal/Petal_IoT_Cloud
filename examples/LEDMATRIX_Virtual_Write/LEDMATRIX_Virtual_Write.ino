@@ -1,6 +1,9 @@
 #include <PetalLedmatrix.h>
 #include <iotCloud.h>
 
+#define WIFI_SSID  "*******"
+#define WIFI_PASSWORD "**********"
+#define DEVICE_TOKEN "***********"
 
 LEDMATRIX Petal;
 
@@ -53,4 +56,5 @@ void loop()
   displayPrint();
 
 }
+
 
