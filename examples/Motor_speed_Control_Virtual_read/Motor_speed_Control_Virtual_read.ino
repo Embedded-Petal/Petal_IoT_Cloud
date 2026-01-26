@@ -1,8 +1,9 @@
 #include <iotCloud.h>
 
-#define WIFI_SSID     "Petal"
-#define WIFI_PASSWORD  "Petal#2024"
-#define DEVICE_TOKEN  "108bcfdd8d0b4130bd5dad72894ad8db1769067998308"
+#define WIFI_SSID  "*******"
+#define WIFI_PASSWORD "**********"
+#define DEVICE_TOKEN "***********"
+
 
 #define M1 13
 #define M2 12
