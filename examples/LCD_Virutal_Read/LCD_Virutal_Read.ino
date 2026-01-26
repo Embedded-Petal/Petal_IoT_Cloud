@@ -1,9 +1,9 @@
 #include <iotCloud.h>
 #include <LiquidCrystal.h>
 
-#define WIFI_SSID "Petal"
-#define WIFI_PASSWORD "Petal#2024"
-#define DEVICE_TOKEN "455af741ac7449e88eab613ea44f80f81768800404446"
+#define WIFI_SSID  "*******"
+#define WIFI_PASSWORD "**********"
+#define DEVICE_TOKEN "***********"
 
 // ---------------- LCD CONFIG ----------------
 // RS, EN, D4, D5, D6, D7
