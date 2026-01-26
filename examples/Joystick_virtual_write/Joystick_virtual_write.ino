@@ -1,8 +1,8 @@
 #include "iotCloud.h"
 
-#define WIFI_SSID "Petal"
-#define WIFI_PASSWORD "Petal#2024"
-#define DEVICE_TOKEN "dc971248626d4ef087646621637c4f9d1769065895799"
+#define WIFI_SSID  "*******"
+#define WIFI_PASSWORD "**********"
+#define DEVICE_TOKEN "***********"
 
 // Define the joystick pins
 #define JOYSTICK_X_PIN 33
