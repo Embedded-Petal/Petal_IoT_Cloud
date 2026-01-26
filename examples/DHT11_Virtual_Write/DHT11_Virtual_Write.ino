@@ -1,9 +1,9 @@
 #include "iotCloud.h"
 #include <DHT.h>
 
-#define WIFI_SSID "Petal"
-#define WIFI_Password "Petal#2024"
-#define DEVICE_TOKEN "dc971248626d4ef087646621637c4f9d1769065895799"
+#define WIFI_SSID  "*******"
+#define WIFI_PASSWORD "**********"
+#define DEVICE_TOKEN "***********"
 
 #define DHTPIN 5
 #define DHTTYPE DHT11
