@@ -5,8 +5,8 @@
 #define DEVICE_TOKEN "dc971248626d4ef087646621637c4f9d1769065895799"
 
 // Define the joystick pins
-#define JOYSTICK_X_PIN 4
-#define JOYSTICK_Y_PIN 15
+#define JOYSTICK_X_PIN 33
+#define JOYSTICK_Y_PIN 32
 
 String vPinX = "V1";
 String vPinY = "V2";
