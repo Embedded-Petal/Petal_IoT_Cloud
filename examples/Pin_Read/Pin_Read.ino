@@ -1,4 +1,5 @@
-#include <iotCloud.h>
+#include <Petal_IoT_Cloud.h>
+
 
 #define WIFI_SSID     "**************"
 #define WIFI_PASSWORD  "**************"
@@ -22,3 +23,4 @@ void loop() {
   if (LEDState1 == 1 ) digitalWrite(LED1, HIGH);
   else digitalWrite(LED1, LOW);
 }  
+
