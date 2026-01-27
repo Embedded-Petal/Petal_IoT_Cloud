@@ -1,4 +1,5 @@
-#include <iotCloud.h>
+#include <Petal_IoT_Cloud.h>
+
 
 #define WIFI_SSID "***********"
 #define WIFI_PASSWORD "**********"
