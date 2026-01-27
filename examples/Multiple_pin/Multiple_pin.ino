@@ -1,4 +1,5 @@
-#include <iotCloud.h>
+#include <Petal_IoT_Cloud.h>
+
 #include <FastLED.h>
 
 #define WIFI_SSID     "**************"
@@ -114,3 +115,4 @@ void loop() {
   }
 
 }
+
