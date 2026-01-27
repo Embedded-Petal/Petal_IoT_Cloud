@@ -1,5 +1,5 @@
-#include <iotCloud.h>
-#include "StepperMotor.h"
+#include <Petal_IoT_Cloud.h>
+
 
 #define WIFI_SSID  "*******"
 #define WIFI_PASSWORD "**********"
@@ -49,4 +49,5 @@ void loop() {
  Cloud.loop();
  
 }
+
 
