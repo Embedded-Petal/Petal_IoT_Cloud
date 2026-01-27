@@ -1,4 +1,3 @@
-#include <PetalLedmatrix.h>
 #include <iotCloud.h>
 
 #define WIFI_SSID  "*******"
@@ -56,5 +55,6 @@ void loop()
   displayPrint();
 
 }
+
 
 
