@@ -1,4 +1,4 @@
-#include <iotCloud.h>
+#include <Petal_IoT_Cloud.h>
 #include <Keypad.h>
 
 #define WIFI_SSID  "*******"
