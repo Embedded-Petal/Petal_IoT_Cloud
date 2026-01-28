@@ -5,7 +5,7 @@
 #define DEVICE_TOKEN "***********"
 
 #define PIR 5
-
+int previousState ;
 void setup()
 {
   Serial.begin(115200);
@@ -17,6 +17,9 @@ void loop()
 {
  Cloud.loop();
  int pirState = digitalRead(PIR) ;
- Cloud.write("V7", pirState);
+ if(pirState != previousState)
+ {
+   Cloud.write("V7", pirState);
+ }
  delay(10);
 }
