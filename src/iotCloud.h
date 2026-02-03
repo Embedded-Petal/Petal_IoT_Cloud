@@ -8,6 +8,8 @@
 #include <ArduinoJson.h>
 #include <map>
 #include <functional>
+#include <Update.h>
+#include <Preferences.h>
 
 typedef std::function<void(String)> PinCallback;
 
@@ -39,9 +41,12 @@ class IoTCloud {
     int readInt(String pin);
     bool readBool(String pin);
     RGB readRGB(String pin);
-   
+    bool writeAck(String pin, String value);
     // CALLBACK
     void registerPin(String pin, PinCallback cb);
+    void writeRawWS(String pin, String value);
+    void storeMemoryString(String keyss, String values);
+    void storeMemoryInt(String keyss, int values);
 
   private:
    bool writeInternal(String pin, String value);
@@ -60,8 +65,11 @@ class IoTCloud {
     String _lastWriteString[500];
     RGB _lastRGB[500];
     String urlEncode(const String &value);
+    void updates(String url);
 };
 
 extern IoTCloud Cloud;
+extern Preferences preferences;
 
 #endif
+
