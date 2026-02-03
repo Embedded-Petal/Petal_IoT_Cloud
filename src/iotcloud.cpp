@@ -5,10 +5,31 @@ uint16_t WS_PORT = 80;
 String WS_PATH = "/ws-mobile";
 
 IoTCloud Cloud;
+Preferences preferences;
 static IoTCloud *instancePtr;
 String key = "/api/iot/mcu?token=";
+unsigned long lastStatusSend = 0;
+static uint32_t lastWs = 0;
+int getIntMemory;
+String airValues = "";
+
+void IoTCloud::storeMemoryString(String keyss, String values) {
+  preferences.begin("cloud", false);  //read&write
+  preferences.putString(keyss.c_str(), values.c_str());
+  preferences.end();
+}
+
+void IoTCloud::storeMemoryInt(String keyss, int values) {
+  preferences.begin("cloud", false);
+  preferences.putInt(keyss.c_str(), values);
+  preferences.end();
+}
 
 void IoTCloud::begin(String ssid, String password, String token) {
+  preferences.begin("cloud", false);
+  getIntMemory = preferences.getInt("update", 0);
+  preferences.end();
+  
   instancePtr = this;
   this->ssid = ssid;
   this->password = password;
@@ -22,6 +43,11 @@ void IoTCloud::begin(String ssid, String password, String token) {
 
   connectWiFi();
   connectWS();
+  uint32_t t0 = millis();
+  while (millis() - t0 < 1000) {  // 1 second handshake window
+    ws.loop();
+    delay(1);
+  }
 }
 
 void IoTCloud::connectWiFi() {
@@ -33,6 +59,9 @@ void IoTCloud::connectWiFi() {
   }
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("WiFi Connected..");
+    if (!ws.isConnected()) {
+      connectWS();
+    }
   }
 }
 
@@ -41,7 +70,7 @@ void IoTCloud::connectWiFi() {
 void IoTCloud::connectWS() {
   ws.begin(WS_HOST.c_str(), WS_PORT, WS_PATH.c_str());
   // Heartbeat (important for cloud)
-  ws.enableHeartbeat(15000, 3000, 2);
+  ws.enableHeartbeat(15000, 8000, 2);
   // STOMP event handler
   ws.onEvent(IoTCloud::wsEvent);
 }
@@ -63,14 +92,36 @@ void IoTCloud::loop() {
       lastTry = millis();
     }
   }
+  else if (ws.isConnected() && WiFi.status() == WL_CONNECTED) {
+    if (millis() - lastStatusSend >= 10000) {  // 10 seconds
+      writeAck("status", "Online");
+      if (getIntMemory == 1) {
+        preferences.begin("cloud", false);
+        String getStringMemory = preferences.getString("airStatus", "");
+        for (int i = 0; i < 2; i++) {
+          writeAck("airStatus", getStringMemory);
+          delay(500);
+        }
+        preferences.putInt("update", 0);
+        preferences.end();
+        getIntMemory = 0;
+      }
+      lastStatusSend = millis();
+    }
+  }
 
-  ws.loop();
+  if (WiFi.status() == WL_CONNECTED) {
+    if (millis() - lastWs >= 20) {  // 50Hz WebSocket
+      ws.loop();
+      lastWs = millis();
+    }
+  }
+  yield();  // or delay(0)
 }
 
 /**************** DISPATCH ****************/
 
 void IoTCloud::dispatchPin(String pin, String value) {
-  if (lastValues[pin] == value) return;
   lastValues[pin] = value;
 
   if (isHexColor(value)) {
@@ -126,13 +177,24 @@ String IoTCloud::urlEncode(const String &value) {
   return encoded;
 }
 
+bool IoTCloud::writeAck(String pin, String value) {
+  if (!ws.isConnected()) return false;
+  int idx = pinIndex(pin);
+  String encodedValue = urlEncode(value);
+  String msg =
+    "SEND\n"
+    "destination:/app/device/"
+    + instancePtr->deviceToken + "\n\n" + pin + "=" + encodedValue + '\0';
+  Serial.println(msg);
+  ws.sendTXT(msg);
+  return true;
+}
+
 
 bool IoTCloud::writeInternal(String pin, String value) {
  
   int idx = pinIndex(pin);
   String encodedValue = urlEncode(value);
-  // avoid re-send if same string exists
-  if (_lastWriteString[idx] == encodedValue) return true;
 
   if (WiFi.status() != WL_CONNECTED) return false;
   
@@ -167,6 +229,67 @@ bool IoTCloud::isHexColor(String v) {
 
 uint8_t IoTCloud::hexByte(String h) {
   return strtol(h.c_str(), NULL, 16);
+}
+
+
+
+/*********Check For Updates********** */
+void IoTCloud::updates(String url) {
+  HTTPClient http;
+  http.begin(url);            // Specify the URL
+  int httpCode = http.GET();  // Make the request
+
+  if (httpCode == HTTP_CODE_OK) {  // Check for the returning code
+    int contentLength = http.getSize();
+    bool canBegin = Update.begin(contentLength);
+    if (canBegin) {
+      Serial.println("Begin OTA update...");
+
+      WiFiClient *client = http.getStreamPtr();
+      size_t written = Update.writeStream(*client);
+
+      if (written == contentLength) {
+        Serial.println("Written : " + String(written) + " successfully");
+      } else {
+        Serial.println("Written only : " + String(written) + "/" + String(contentLength));
+      }
+
+      if (Update.end()) {
+        Serial.println("OTA done!");
+        if (Update.isFinished()) {
+          Serial.println("Update successfully completed. Rebooting.");
+          airValues = "Success";
+          storeMemoryString("airStatus", airValues);
+          storeMemoryInt("update", 1);
+          delay(1000);
+          ESP.restart();
+        } else {
+          airValues = "Update not finished? Something went wrong!";
+          writeAck("airStatus", airValues);
+
+          Serial.println("Update not finished? Something went wrong!");
+          delay(1000);
+        }
+      } else {
+        airValues = "Error Occurred. Error #: " + String(Update.getError());
+        writeAck("airStatus", airValues);
+        Serial.println("Error Occurred. Error #: " + String(Update.getError()));
+        delay(1000);
+      }
+    } else {
+      airValues = "Not enough space to begin OTA";
+      writeAck("airStatus", airValues);
+      Serial.println("Not enough space to begin OTA");
+      delay(1000);
+    }
+  } else {
+    airValues = "Firmware not found on server, Error: " + String(httpCode);
+    writeAck("airStatus", airValues);
+    Serial.println("Firmware not found on server, Error: " + String(httpCode));
+    delay(1000);
+  }
+
+  http.end();  // Close connection
 }
 
 /**************** STOMP WS ****************/
@@ -216,11 +339,20 @@ void IoTCloud::wsEvent(WStype_t type, uint8_t *payload, size_t length) {
               String pin = doc["pin"].as<String>();
               String val = doc["value"].as<String>();
               val.trim();
-              instancePtr->dispatchPin(pin, val);
+              pin.trim();
+              pin.toUpperCase();
+              Serial.println(msg);
+              if (pin == "AIR") {
+                Serial.println("OTA!");
+                instancePtr->updates(val);
+              } else {
+                instancePtr->dispatchPin(pin, val);
+              }
             }
           }
         }
         break;
-      }       
+      }    
   }
 }
+
