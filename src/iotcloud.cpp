@@ -185,7 +185,6 @@ bool IoTCloud::writeAck(String pin, String value) {
     "SEND\n"
     "destination:/app/device/"
     + instancePtr->deviceToken + "\n\n" + pin + "=" + encodedValue + '\0';
-  Serial.println(msg);
   ws.sendTXT(msg);
   return true;
 }
@@ -343,7 +342,7 @@ void IoTCloud::wsEvent(WStype_t type, uint8_t *payload, size_t length) {
               pin.toUpperCase();
               Serial.println(msg);
               if (pin == "AIR") {
-                Serial.println("OTA!");
+                Serial.println("Air Update!");
                 instancePtr->updates(val);
               } else {
                 instancePtr->dispatchPin(pin, val);
@@ -355,4 +354,5 @@ void IoTCloud::wsEvent(WStype_t type, uint8_t *payload, size_t length) {
       }    
   }
 }
+
 
