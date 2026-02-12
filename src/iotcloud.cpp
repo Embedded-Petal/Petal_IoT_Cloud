@@ -1,7 +1,7 @@
 #include "iotcloud.h"
 
 String WS_HOST = "api.iotcloud.petalred.com";
-uint16_t WS_PORT = 80;
+uint16_t WS_PORT = 443;
 String WS_PATH = "/ws-mobile";
 
 IoTCloud Cloud;
@@ -68,7 +68,7 @@ void IoTCloud::connectWiFi() {
 
 
 void IoTCloud::connectWS() {
-  ws.begin(WS_HOST.c_str(), WS_PORT, WS_PATH.c_str());
+  ws.beginSSL(WS_HOST.c_str(), WS_PORT, WS_PATH.c_str());
   // Heartbeat (important for cloud)
   ws.enableHeartbeat(15000, 8000, 2);
   // STOMP event handler
@@ -354,5 +354,6 @@ void IoTCloud::wsEvent(WStype_t type, uint8_t *payload, size_t length) {
       }    
   }
 }
+
 
 
