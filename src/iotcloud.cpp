@@ -340,7 +340,6 @@ void IoTCloud::wsEvent(WStype_t type, uint8_t *payload, size_t length) {
               val.trim();
               pin.trim();
               pin.toUpperCase();
-              Serial.println(msg);
               if (pin == "AIR") {
                 Serial.println("Air Update!");
                 instancePtr->updates(val);
@@ -351,9 +350,19 @@ void IoTCloud::wsEvent(WStype_t type, uint8_t *payload, size_t length) {
           }
         }
         break;
-      }    
+      } 
+    case WStype_DISCONNECTED:
+      {
+        Serial.print("[WS] Disconnected! Payload: ");
+        if (payload && length > 0) {
+          for (size_t i = 0; i < length; i++) Serial.print((char)payload[i]);
+        }
+        Serial.println();
+        break;
+      }
   }
 }
+
 
 
 
