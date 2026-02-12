@@ -5,7 +5,7 @@
 #define WIFI_PASSWORD  "**************"
 #define DEVICE_TOKEN  "*******************"
 
-#define LED1 13
+#define LED1 12
 int LEDState1;
 
 void setup() {
@@ -23,4 +23,5 @@ void loop() {
   if (LEDState1 == 1 ) digitalWrite(LED1, HIGH);
   else digitalWrite(LED1, LOW);
 }  
+
 
