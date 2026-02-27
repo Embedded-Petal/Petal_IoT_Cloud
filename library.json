@@ -1,0 +1,41 @@
+{
+  "name": "Petal IoT Cloud",
+  "version": "1.1.10",
+  "description": "Petal IoTCloud library for ESP32 and ESP8266.",
+  "paragraph":"Petal IoT Cloud is an open-source IoT platform for sending and receiving virtual pin data such as joystick, RGB, and map location. Includes a companion mobile app for visualization and control."
+  "keywords": "iot, Petal IoT Cloud , embedded,Petal",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Embedded-Petal/Petal_IoT_Cloud.git"
+  },
+  "authors": [
+    {
+      "name": "Karthickraja",
+      "email": "karthickraja.thepetal@gmail.com",
+      "maintainer": true
+    }
+  ],
+  "frameworks": "arduino",
+  "platforms": "*",
+  "dependencies": [
+    {
+      "name": "bblanchon/ArduinoJson",
+      "version": ">=6.0.0"
+    },
+    {
+      "name": "adafruit/Adafruit GFX Library"
+    },
+    {
+      "name": "fastled/FastLED"
+    },
+    {
+      "name": "adafruit/Adafruit BusIO"
+    },
+    {
+      "name": "adafruit/Adafruit SSD1306"
+    },
+    {
+      "name": "maxint-rd/TM16xx"
+    }
+  ]
+}
