@@ -1,3 +1,7 @@
+#ifndef PETALLED_MATRIX
+#error "Petal LED Matrix not enabled. Add #define PETALLED_MATRIX_ENABLE before including PetalLedmatrix.h"
+#endif
+
 #ifndef PETALLEDMATRIX_H
 #define PETALLEDMATRIX_H
 
