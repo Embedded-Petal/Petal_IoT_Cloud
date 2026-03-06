@@ -8,8 +8,7 @@
 #include <ArduinoJson.h>
 #include <map>
 #include <functional>
-#include <Update.h>
-#include <Preferences.h>
+
 
 typedef std::function<void(String)> PinCallback;
 
@@ -69,7 +68,10 @@ class IoTCloud {
 };
 
 extern IoTCloud Cloud;
+#ifdef UPDATE_SKYLINK
 extern Preferences preferences;
+#endif
 
 #endif
+
 
