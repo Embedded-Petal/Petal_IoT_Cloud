@@ -1,4 +1,12 @@
+#ifndef IOTCLOUD_HPP
+#define IOTCLOUD_HPP
+
 #include "iotCloud.h"
+
+#ifdef UPDATE_SKYLINK
+#include <Update.h>
+#include <Preferences.h>
+#endif
 
 String WS_HOST = "api.spelliot.com";
 uint16_t WS_PORT = 443;
@@ -361,6 +369,7 @@ void IoTCloud::wsEvent(WStype_t type, uint8_t *payload, size_t length) {
 }
 
 
+#endif
 
 
 
