@@ -1,3 +1,4 @@
+#ifdef PETALLED_MATRIX
 
 #include"PetalLedmatrix.h"
 
@@ -372,3 +373,4 @@ void LEDMATRIX::LedMatrixClear()
  matrix.write();
 }
 
+#endif
