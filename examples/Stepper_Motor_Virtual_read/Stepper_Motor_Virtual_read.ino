@@ -1,3 +1,4 @@
+#define PETAL_STEPPER_MOTOR
 #include <Petal_IoT_Cloud.h>
 
 
@@ -49,5 +50,6 @@ void loop() {
  Cloud.loop();
  
 }
+
 
 
