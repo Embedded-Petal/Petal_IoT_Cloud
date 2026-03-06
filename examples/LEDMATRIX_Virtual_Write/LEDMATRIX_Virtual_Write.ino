@@ -1,3 +1,4 @@
+#define PETAL_LED_DISPLAY
 #include <Petal_IoT_Cloud.h>
 
 
@@ -56,6 +57,7 @@ void loop()
   displayPrint();
 
 }
+
 
 
 
