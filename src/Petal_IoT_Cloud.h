@@ -11,4 +11,9 @@
 #include "StepperMotor.h"
 #endif
 
+#ifdef PETAL_UPDATE
+#define UPDATE_SKYLINK
+#include "skylink.h"
+#endif
+
 #endif
