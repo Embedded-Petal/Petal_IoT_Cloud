@@ -95,7 +95,6 @@ void IoTCloud::loop() {
   if (!ws.isConnected() && WiFi.status() == WL_CONNECTED) {
     static unsigned long lastTry = 0;
     if (millis() - lastTry > 3000) {
-      //ws.disconnect();
       connectWS();
       lastTry = millis();
     }
@@ -360,6 +359,7 @@ void IoTCloud::wsEvent(WStype_t type, uint8_t *payload, size_t length) {
     //   }
   }
 }
+
 
 
 
