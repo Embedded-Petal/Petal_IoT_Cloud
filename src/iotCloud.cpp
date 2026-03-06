@@ -1,11 +1,15 @@
 #include "iotCloud.h"
 
-String WS_HOST = "api.iotcloud.petalred.com";
+String WS_HOST = "api.spelliot.com";
 uint16_t WS_PORT = 443;
 String WS_PATH = "/ws-mobile";
 
 IoTCloud Cloud;
+
+#ifdef UPDATE_SKYLINK
 Preferences preferences;
+#endif
+
 static IoTCloud *instancePtr;
 String key = "/api/iot/mcu?token=";
 unsigned long lastStatusSend = 0;
@@ -13,6 +17,7 @@ static uint32_t lastWs = 0;
 int getIntMemory;
 String airValues = "";
 
+#ifdef UPDATE_SKYLINK
 void IoTCloud::storeMemoryString(String keyss, String values) {
   preferences.begin("cloud", false);  //read&write
   preferences.putString(keyss.c_str(), values.c_str());
@@ -24,12 +29,15 @@ void IoTCloud::storeMemoryInt(String keyss, int values) {
   preferences.putInt(keyss.c_str(), values);
   preferences.end();
 }
+#endif
 
 void IoTCloud::begin(String ssid, String password, String token) {
+  #ifdef UPDATE_SKYLINK
   preferences.begin("cloud", false);
   getIntMemory = preferences.getInt("update", 0);
   preferences.end();
-  
+  #endif
+
   instancePtr = this;
   this->ssid = ssid;
   this->password = password;
@@ -82,12 +90,12 @@ void IoTCloud::registerPin(String pin, PinCallback cb) {
 void IoTCloud::loop() {
   if (WiFi.status() != WL_CONNECTED)
     connectWiFi();
-
+  ws.loop();
   // Auto reconnect WS
   if (!ws.isConnected() && WiFi.status() == WL_CONNECTED) {
     static unsigned long lastTry = 0;
     if (millis() - lastTry > 3000) {
-      ws.disconnect();
+      //ws.disconnect();
       connectWS();
       lastTry = millis();
     }
@@ -95,6 +103,7 @@ void IoTCloud::loop() {
   else if (ws.isConnected() && WiFi.status() == WL_CONNECTED) {
     if (millis() - lastStatusSend >= 10000) {  // 10 seconds
       writeAck("status", "Online");
+      #ifdef UPDATE_SKYLINK
       if (getIntMemory == 1) {
         preferences.begin("cloud", false);
         String getStringMemory = preferences.getString("airStatus", "");
@@ -106,15 +115,13 @@ void IoTCloud::loop() {
         preferences.end();
         getIntMemory = 0;
       }
+      #endif
       lastStatusSend = millis();
     }
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    if (millis() - lastWs >= 20) {  // 50Hz WebSocket
-      ws.loop();
-      lastWs = millis();
-    }
+    ws.loop();
   }
   yield();  // or delay(0)
 }
@@ -191,24 +198,9 @@ bool IoTCloud::writeAck(String pin, String value) {
 
 
 bool IoTCloud::writeInternal(String pin, String value) {
- 
-  int idx = pinIndex(pin);
-  String encodedValue = urlEncode(value);
 
-  if (WiFi.status() != WL_CONNECTED) return false;
-  
-  String url = String(PETAL_SERVER_IP) + key + deviceToken + "&" + pin + "=" + encodedValue;
-  HTTPClient https;
-  https.begin(url);
-  https.setTimeout(8000);
-  int code = https.GET();
-  https.end();
-
-  if (code > 0) {
-    _lastWriteString[idx] = encodedValue;  // cache string
-    return true;
-  }
-  return false;
+   return writeAck(pin,value);
+   
 }
 
 /**************** HELPERS ****************/
@@ -233,6 +225,7 @@ uint8_t IoTCloud::hexByte(String h) {
 
 
 /*********Check For Updates********** */
+#ifdef UPDATE_SKYLINK
 void IoTCloud::updates(String url) {
   HTTPClient http;
   http.begin(url);            // Specify the URL
@@ -290,6 +283,7 @@ void IoTCloud::updates(String url) {
 
   http.end();  // Close connection
 }
+#endif
 
 /**************** STOMP WS ****************/
 
@@ -309,7 +303,7 @@ void IoTCloud::wsEvent(WStype_t type, uint8_t *payload, size_t length) {
         instancePtr->sendSTOMP(
           "CONNECT\n"
           "accept-version:1.2\n"
-          "host:api.iotcloud.petalred.com\n"
+          "host:api.spelliot.com\n"
           "heart-beat:10000,10000");
         break;
       }
@@ -341,8 +335,12 @@ void IoTCloud::wsEvent(WStype_t type, uint8_t *payload, size_t length) {
               pin.trim();
               pin.toUpperCase();
               if (pin == "AIR") {
-                Serial.println("Air Update!");
-                instancePtr->updates(val);
+                #ifdef UPDATE_SKYLINK
+                  Serial.println("Air Update!");
+                  instancePtr->updates(val);
+                #else
+                  Serial.println("OTA Disabled");
+                #endif
               } else {
                 instancePtr->dispatchPin(pin, val);
               }
@@ -351,15 +349,15 @@ void IoTCloud::wsEvent(WStype_t type, uint8_t *payload, size_t length) {
         }
         break;
       } 
-    case WStype_DISCONNECTED:
-      {
-        Serial.print("[WS] Disconnected! Payload: ");
-        if (payload && length > 0) {
-          for (size_t i = 0; i < length; i++) Serial.print((char)payload[i]);
-        }
-        Serial.println();
-        break;
-      }
+    // case WStype_DISCONNECTED:
+    //   {
+    //     Serial.print("[WS] Disconnected! Payload: ");
+    //     if (payload && length > 0) {
+    //       for (size_t i = 0; i < length; i++) Serial.print((char)payload[i]);
+    //     }
+    //     Serial.println();
+    //     break;
+    //   }
   }
 }
 
