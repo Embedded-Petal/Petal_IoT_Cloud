@@ -1,3 +1,4 @@
+#define SKYLINK_FIRMWARE_VERSION "1.0.0"
 #define PETAL_UPDATE
 #include <Petal_IoT_Cloud.h>
 
